@@ -61,8 +61,8 @@ class AppForm(QMainWindow):
         # Image selection dropdown box
         self.image_selection_menu = QComboBox()
         self.image_selection_menu.addItem('Galaxy Simulation 1')
-#        self.image_selection_menu.addItem('Galaxy Image 1')
-#        self.image_selection_menu.addItem('Galaxy Image 2')
+        self.image_selection_menu.addItem('Galaxy Image 1')
+        self.image_selection_menu.addItem('Galaxy Image 2')
         self.image_selection_menu.addItem('Jupiter Narrow Field Simulation')
         self.image_selection_menu.addItem('Jupiter Wide Field Simulation')
         self.image_selection_menu.addItem('Star Formation Simulation 1')

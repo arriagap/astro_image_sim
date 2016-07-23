@@ -16,10 +16,10 @@ class ImageObject:
         self.master_sampling = sampling
         self.current_sampling = sampling
         imsize = numpy.shape(image)
-        self.xsize_arcsecs = imsize[1] * sampling
-        self.ysize_arcsecs = imsize[2] * sampling 
-        self.current_xsize_arcsecs = imsize[1] * sampling
-        self.current_ysize_arcsecs = imsize[2] * sampling
+        self.xsize_arcsecs = imsize[0] * sampling
+        self.ysize_arcsecs = imsize[1] * sampling 
+        self.current_xsize_arcsecs = imsize[0] * sampling
+        self.current_ysize_arcsecs = imsize[1 ] * sampling
     def update_sampling(self, new_sampling):
         zoom_factor = self.master_sampling / new_sampling
         self.current_sampling = new_sampling
