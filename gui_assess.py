@@ -73,6 +73,32 @@ class AppForm(QMainWindow):
         self.image_selection_menu.activated[str].connect(self.image_selection)
         vbox.addWidget(self.image_selection_menu)
 
+
+        self.objsizebox = QLineEdit()
+        vbox.addWidget(self.objsizebox)
+
+        
+
+        self.imsizebox = QLineEdit()
+        vbox.addWidget(self.imsizebox)
+
+        
+        self.updatebutton = QPushButton('Derp')
+        vbox.addWidget(self.updatebutton)
+        
+        
+
+        def onClicked():
+            imsize = self.imsizebox.text()
+            objsize = self.objsizebox.text()
+            try: 
+                imsize = float(imsize)
+                objsize = float(objsize)
+            except:
+                QMessageBox.about(self, 'Error','Image size and object size must be numbers')
+                
+        self.updatebutton.clicked.connect(onClicked)
+
         # Initialize GUI
         self.main_frame.setLayout(vbox)
         self.setCentralWidget(self.main_frame)
@@ -83,7 +109,6 @@ class AppForm(QMainWindow):
         self.fig.clear()
 #        gs = gridspec.GridSpec(3,1, height_ratios=[30,1,1])
         self.image_axes = self.fig.add_subplot(111)
-        self.fig.subplots_adjust(bottom = .25)
         # Initial image 
         # FIXME add null image
         self.current_pixscale = .05
@@ -95,12 +120,11 @@ class AppForm(QMainWindow):
         self.imshow = self.image_axes.imshow(self.image_object, interpolation='nearest', 
                                              extent = [-self.obj.xsize_arcsecs / 2., self.obj.xsize_arcsecs / 2.,
                                                        -self.obj.ysize_arcsecs / 2., self.obj.ysize_arcsecs / 2.])
-        self.sample_axis = self.fig.add_axes([0.25, 0.1, 0.65, 0.03])
-        self.fov_axis = self.fig.add_axes([0.25, 0.15, 0.65, 0.03])
-#        self.sample_axis = self.fig.add_subplot(gs[1])
-#        self.fov_axis = self.fig.add_subplot(gs[2])
-        self.sample_slider = Slider(self.sample_axis, 'Sampling (arcsecs/pix)', self.current_pixscale, self.current_pixscale * 100., valinit = self.current_pixscale)
-        self.fov_slider = Slider(self.fov_axis, 'Field of View (arsecs)', 1., 30., valinit = 10.)
+
+
+        
+
+        '''
         def update(val):
             self.obj.update_sampling(self.sample_slider.val)
             fov = self.fov_slider.val 
@@ -108,9 +132,8 @@ class AppForm(QMainWindow):
             self.image_axes.set_ylim(-fov, fov)
             self.imshow.set_data(self.obj.current_image)
             self.canvas.draw()
-        self.sample_slider.on_changed(update)
-        self.fov_slider.on_changed(update)
-        self.canvas.draw()
+        '''
+
 
     def image_selection(self, image_name):
         ''' 
@@ -181,17 +204,6 @@ class AppForm(QMainWindow):
         self.imshow.set_extent([-self.obj.xsize_arcsecs / 2., self.obj.xsize_arcsecs / 2., 
                                 -self.obj.ysize_arcsecs / 2., self.obj.ysize_arcsecs / 2.])
         self.canvas.draw()
-        if self.obj.master_sampling != self.current_pixscale:
-            self.current_pixscale = self.obj.master_sampling
-            self.sample_axis.cla()
-            self.sample_slider = Slider(self.sample_axis, 'Sampling (arcsecs/pix)', self.current_pixscale, self.current_pixscale * 20., valinit = self.current_pixscale)
-            def update(val):
-                self.obj.update_sampling(self.sample_slider.val)
-                self.imshow.set_data(self.obj.current_image)
-                self.canvas.draw()
-            self.sample_slider.on_changed(update)
-        else:
-            self.sample_slider.reset()
 
 
 def main():
