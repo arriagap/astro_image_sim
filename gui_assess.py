@@ -9,6 +9,9 @@ from matplotlib.backends.backend_qt4agg import (
     NavigationToolbar2QT as NavigationToolbar)
 from matplotlib.backends import qt4_compat
 use_pyside = qt4_compat.QT_API == qt4_compat.QT_API_PYSIDE
+import matplotlib
+matplotlib.use('GTKAgg')
+
 import numpy
 from scipy import misc
 from resample import ImageObject
@@ -37,6 +40,11 @@ class AppForm(QMainWindow):
         self.create_main_frame()
         # Plots initial image
         self.init_draw()
+        self.detector_pitch = 18.e-6
+        self.detector_npix = 2048.
+        self.detector_size = self.detector_pitch * self.detector_npix
+        
+
     def create_main_frame(self):
         self.main_frame = QWidget()
 
@@ -94,6 +102,14 @@ class AppForm(QMainWindow):
             try: 
                 imsize = float(imsize)
                 objsize = float(objsize)
+                scale = objsize / imsize # arseconds / mm
+                pixscale = scale * 18.3e-3 # arcseconds / pixel. 18.3 micron pixel size of H2RG 
+                fov = 2048. * pixscale
+                self.obj.update_sampling(pixscale)
+                self.image_axes.set_xlim(-fov, fov)
+                self.image_axes.set_ylim(-fov, fov)
+                self.imshow.set_data(self.obj.current_image)
+                self.canvas.draw()
             except:
                 QMessageBox.about(self, 'Error','Image size and object size must be numbers')
                 

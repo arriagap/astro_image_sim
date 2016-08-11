@@ -8,6 +8,8 @@ from matplotlib.backends.backend_qt4agg import (
     FigureCanvasQTAgg as FigureCanvas,
     NavigationToolbar2QT as NavigationToolbar)
 from matplotlib.backends import qt4_compat
+from matplotlib import animation
+
 use_pyside = qt4_compat.QT_API == qt4_compat.QT_API_PYSIDE
 import numpy
 from scipy import misc
