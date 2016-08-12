@@ -217,8 +217,10 @@ class AppForm(QMainWindow):
         Helper function to image selection, resets image and sliders
         '''
         self.imshow.set_data(self.obj.current_image)
-        self.imshow.set_extent([-self.obj.xsize_arcsecs / 2., self.obj.xsize_arcsecs / 2., 
-                                -self.obj.ysize_arcsecs / 2., self.obj.ysize_arcsecs / 2.])
+        
+
+#        self.imshow.set_extent([-self.obj.xsize_arcsecs / 2., self.obj.xsize_arcsecs / 2., 
+#                                -self.obj.ysize_arcsecs / 2., self.obj.ysize_arcsecs / 2.])
         self.canvas.draw()
 
 

@@ -9,7 +9,7 @@ from matplotlib.backends.backend_qt4agg import (
     NavigationToolbar2QT as NavigationToolbar)
 from matplotlib.backends import qt4_compat
 from matplotlib import animation
-
+import matplotlib.patches as patches
 use_pyside = qt4_compat.QT_API == qt4_compat.QT_API_PYSIDE
 import numpy
 from scipy import misc
@@ -103,16 +103,35 @@ class AppForm(QMainWindow):
 #        self.fov_axis = self.fig.add_subplot(gs[2])
         self.sample_slider = Slider(self.sample_axis, 'Sampling (arcsecs/pix)', self.current_pixscale, self.current_pixscale * 100., valinit = self.current_pixscale)
         self.fov_slider = Slider(self.fov_axis, 'Field of View (arsecs)', 1., 30., valinit = 10.)
+        rectsize = 10.
+        self.fov_square = patches.Rectangle((0,0),
+                                            rectsize,
+                                            rectsize, 
+                                            fill = False)
+        self.image_axes.add_artist(self.fov_square)
         def update(val):
-            self.obj.update_sampling(self.sample_slider.val)
+            if self.sample_slider.val != self.obj.current_sampling:
+                self.obj.update_sampling(self.sample_slider.val)
+                self.imshow.set_data(self.obj.current_image)
             fov = self.fov_slider.val 
-            self.image_axes.set_xlim(-fov, fov)
-            self.image_axes.set_ylim(-fov, fov)
-            self.imshow.set_data(self.obj.current_image)
+            self.update_fov_square(fov)
             self.canvas.draw()
         self.sample_slider.on_changed(update)
         self.fov_slider.on_changed(update)
         self.canvas.draw()
+
+    def update_fov_square(self, rectsize, location = None): #add location later
+        '''
+        Adds a square centered around location
+        '''
+        if location == None:
+            location = (0,0) #FIXME 
+        self.fov_square.set_height(rectsize)
+        self.fov_square.set_width(rectsize)
+        
+#        self.image_axes.add_patch(patches.Rectangle((xloc, yloc),
+#                                                    rectsize,
+#                                                   rectsize))
 
     def image_selection(self, image_name):
         ''' 
@@ -179,6 +198,7 @@ class AppForm(QMainWindow):
         '''
         Helper function to image selection, resets image and sliders
         '''
+
         self.imshow.set_data(self.obj.current_image)
         self.imshow.set_extent([-self.obj.xsize_arcsecs / 2., self.obj.xsize_arcsecs / 2., 
                                 -self.obj.ysize_arcsecs / 2., self.obj.ysize_arcsecs / 2.])
