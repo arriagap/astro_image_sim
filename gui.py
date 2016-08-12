@@ -101,13 +101,11 @@ class AppForm(QMainWindow):
         self.fov_axis = self.fig.add_axes([0.25, 0.15, 0.65, 0.03])
 #        self.sample_axis = self.fig.add_subplot(gs[1])
 #        self.fov_axis = self.fig.add_subplot(gs[2])
-        self.sample_slider = Slider(self.sample_axis, 'Sampling (arcsecs/pix)', self.current_pixscale, self.current_pixscale * 100., valinit = self.current_pixscale)
+        self.sample_slider = Slider(self.sample_axis, 'Sampling (arcsecs/pix)', self.current_pixscale, 
+                                    self.current_pixscale * 100., valinit = self.current_pixscale)
         self.fov_slider = Slider(self.fov_axis, 'Field of View (arsecs)', 1., 30., valinit = 10.)
         rectsize = 10.
-        self.fov_square = patches.Rectangle((0,0),
-                                            rectsize,
-                                            rectsize, 
-                                            fill = False)
+        self.fov_square = patches.Rectangle((0,0), rectsize, rectsize, fill = False, linewidth = 4.0, edgecolor = 'red')
         self.image_axes.add_artist(self.fov_square)
         def update(val):
             if self.sample_slider.val != self.obj.current_sampling:
@@ -116,6 +114,7 @@ class AppForm(QMainWindow):
             fov = self.fov_slider.val 
             self.update_fov_square(fov)
             self.canvas.draw()
+        
         self.sample_slider.on_changed(update)
         self.fov_slider.on_changed(update)
         self.canvas.draw()
