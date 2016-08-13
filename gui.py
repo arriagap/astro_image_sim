@@ -51,8 +51,6 @@ class AppForm(QMainWindow):
         self.canvas.setFocus()
 
         # Matplotlib move around 
-        # FIXME remove zoom in button
-        # http://stackoverflow.com/questions/12695678/how-to-modify-the-navigation-toolbar-easily-in-a-matplotlib-figure-window
         self.mpl_toolbar = NavigationToolbar(self.canvas, self.main_frame)
 
         # Add figures to GUI
@@ -70,8 +68,8 @@ class AppForm(QMainWindow):
         self.image_selection_menu.addItem('Star Formation Simulation 1')
         self.image_selection_menu.addItem('Star Formation Simulation 2')
         self.image_selection_menu.addItem('Star Formation Simulation 3')
-        self.image_selection_menu.addItem('Star Formation Image 1')
-        self.image_selection_menu.addItem('Star Formation Image 2')
+#        self.image_selection_menu.addItem('Star Formation Image 1')
+#        self.image_selection_menu.addItem('Star Formation Image 2')
         self.image_selection_menu.activated[str].connect(self.image_selection)
         vbox.addWidget(self.image_selection_menu)
 
@@ -83,7 +81,6 @@ class AppForm(QMainWindow):
         Sets up all of the matplotlib widgets
         '''
         self.fig.clear()
-#        gs = gridspec.GridSpec(3,1, height_ratios=[30,1,1])
         self.image_axes = self.fig.add_subplot(111)
         self.fig.subplots_adjust(bottom = .25)
         # Initial image 
@@ -99,38 +96,54 @@ class AppForm(QMainWindow):
                                                        -self.obj.ysize_arcsecs / 2., self.obj.ysize_arcsecs / 2.])
         self.sample_axis = self.fig.add_axes([0.25, 0.1, 0.65, 0.03])
         self.fov_axis = self.fig.add_axes([0.25, 0.15, 0.65, 0.03])
-#        self.sample_axis = self.fig.add_subplot(gs[1])
-#        self.fov_axis = self.fig.add_subplot(gs[2])
         self.sample_slider = Slider(self.sample_axis, 'Sampling (arcsecs/pix)', self.current_pixscale, 
                                     self.current_pixscale * 100., valinit = self.current_pixscale)
-        self.fov_slider = Slider(self.fov_axis, 'Field of View (arsecs)', 1., 30., valinit = 10.)
+        self.current_fov = 10.
+        self.current_xloc = -self.current_fov / 2. 
+        self.current_yloc = -self.current_fov / 2. 
+        self.fov_slider = Slider(self.fov_axis, 'Field of View (arsecs)', 1., 30., valinit = self.current_fov)
         rectsize = 10.
-        self.fov_square = patches.Rectangle((0,0), rectsize, rectsize, fill = False, linewidth = 4.0, edgecolor = 'red')
+        self.fov_square = patches.Rectangle((-self.current_fov / 2., - self.current_fov / 2.), rectsize, rectsize, fill = False, linewidth = 4.0, edgecolor = 'red')
         self.image_axes.add_artist(self.fov_square)
         def update(val):
             if self.sample_slider.val != self.obj.current_sampling:
                 self.obj.update_sampling(self.sample_slider.val)
                 self.imshow.set_data(self.obj.current_image)
             fov = self.fov_slider.val 
-            self.update_fov_square(fov)
+            self.update_fov_square_size(fov)
+            self.current_fov = fov
             self.canvas.draw()
-        
+
+        def onclick(event):
+            if event.xdata is not None and event.ydata is not None:
+                loc = (event.xdata - self.current_fov / 2., event.ydata - self.current_fov / 2.)
+                if event.inaxes == self.image_axes:
+                    self.update_fov_square_loc(loc)
+                    self.current_xloc = loc[0]
+                    self.current_yloc = loc[1]
+                    self.canvas.draw()
+        self.cid = self.fig.canvas.mpl_connect('button_press_event', onclick)
         self.sample_slider.on_changed(update)
         self.fov_slider.on_changed(update)
         self.canvas.draw()
 
-    def update_fov_square(self, rectsize, location = None): #add location later
+    def update_fov_square_loc(self, newloc):
+        self.fov_square.set_xy(newloc)
+        
+
+    def update_fov_square_size(self, rectsize): #add location later
         '''
         Adds a square centered around location
         '''
-        if location == None:
-            location = (0,0) #FIXME 
+        center_xloc = self.current_xloc + self.current_fov / 2.
+        center_yloc = self.current_yloc + self.current_fov / 2.
+        new_xloc = center_xloc - rectsize / 2.
+        new_yloc = center_yloc - rectsize / 2.
         self.fov_square.set_height(rectsize)
         self.fov_square.set_width(rectsize)
-        
-#        self.image_axes.add_patch(patches.Rectangle((xloc, yloc),
-#                                                    rectsize,
-#                                                   rectsize))
+        self.current_xloc = new_xloc
+        self.current_yloc = new_yloc
+        self.fov_square.set_xy((new_xloc, new_yloc))
 
     def image_selection(self, image_name):
         ''' 
