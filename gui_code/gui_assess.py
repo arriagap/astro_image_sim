@@ -60,57 +60,78 @@ class AppForm(QMainWindow):
 
         # Image selection dropdown box
         self.image_selection_menu = QComboBox()
+
         self.image_selection_menu.addItem('Galaxy Simulation 1')
-#        self.image_selection_menu.addItem('Galaxy Image 1')
-#        self.image_selection_menu.addItem('Galaxy Image 2')
-        self.image_selection_menu.addItem('Jupiter Narrow Field Simulation')
-        self.image_selection_menu.addItem('Jupiter Wide Field Simulation')
+        self.image_selection_menu.addItem('Galaxy Simulation 2')
+        self.image_selection_menu.addItem('Galaxy Image 1')
+        self.image_selection_menu.addItem('Galaxy Image 2')
+        self.image_selection_menu.addItem('Jupiter Simulation')
+        self.image_selection_menu.addItem('Jupiter Image 1')
+        self.image_selection_menu.addItem('Jupiter Image 2')
         self.image_selection_menu.addItem('Star Formation Simulation 1')
         self.image_selection_menu.addItem('Star Formation Simulation 2')
         self.image_selection_menu.addItem('Star Formation Simulation 3')
-#        self.image_selection_menu.addItem('Star Formation Image 1')
-#        self.image_selection_menu.addItem('Star Formation Image 2')
+        self.image_selection_menu.addItem('Star Formation Image 1')
+        self.image_selection_menu.addItem('Star Formation Image 2')
+        self.image_selection_menu.addItem('Star Formation Image 3')
+        self.image_selection_menu.addItem('Galaxy Cluster Image')
+        self.image_selection_menu.addItem('Galaxy Cluster Simulation')
+
+
         self.image_selection_menu.activated[str].connect(self.image_selection)
         vbox.addWidget(self.image_selection_menu)
 
+
+        label_objsize = QLabel('Object Size (degrees)')
         self.objsizebox = QLineEdit()
-        vbox.addWidget(self.objsizebox)
+        objsize_layout = QHBoxLayout()
+        objsize_layout.addWidget(label_objsize)
+        objsize_layout.addWidget(self.objsizebox)
+        vbox.addLayout(objsize_layout)
+        
+        label_imsize = QLabel('Image Size (meters)   ')
         self.imsizebox = QLineEdit()
-        vbox.addWidget(self.imsizebox)
-        self.updatebutton = QPushButton('Derp')
+        imsize_layout = QHBoxLayout()
+        imsize_layout.addWidget(label_imsize)
+        imsize_layout.addWidget(self.imsizebox)
+
+        vbox.addLayout(imsize_layout)
+        self.updatebutton = QPushButton('Calculate')
         vbox.addWidget(self.updatebutton)
 
-##########################
+        self.oversampled = False
+        self.fov_too_large = False
+        self.message = QLabel('Messages:')
+        vbox.addWidget(self.message)
+
 
         def onClicked():
             imsize = self.imsizebox.text()
             objsize = self.objsizebox.text()
-            print('fuck')
             try: 
                 imsize = float(imsize)
-                print(imsize)
                 objsize = float(objsize)
-                print(objsize)
+                objsize *= 3600.
                 scale = objsize / imsize # arseconds / mm
-                pixscale = scale * 18.3e-3 # arcseconds / pixel. 18.3 micron pixel size of H2RG 
-                print(pixscale)
+                pixscale = scale * 18.3e-6 # arcseconds / pixel. 18.3 micron pixel size of H2RG 
                 fov = 2048. * pixscale
-                print(fov)
                 if pixscale != self.obj.current_sampling:
-                    print('fucker')
                     if pixscale > self.obj.master_sampling:
                         self.obj.update_sampling(pixscale)
-                        self.imshow.set_data(self.obj.current_image)
-                
+                        self.imshow.set_data(self.obj.current_image)                
+                        self.oversampled = False
+                    else:
+                        self.oversampled = True
                 if fov < self.obj.xsize_arcsecs:
                     self.update_fov_square_size(fov)
                     self.current_fov = fov
-                    print('fuckerfucker')
+                    self.fov_too_large = False
+                else:
+                    self.fov_too_large = True
                 self.canvas.draw()
             except:
                 QMessageBox.about(self, 'Error','Image size and object size must be numbers')
-                
-########################
+            self.refresh_message()
         self.updatebutton.clicked.connect(onClicked)
 
 
@@ -118,6 +139,17 @@ class AppForm(QMainWindow):
         # Initialize GUI
         self.main_frame.setLayout(vbox)
         self.setCentralWidget(self.main_frame)
+    def refresh_message(self):
+        if self.fov_too_large == False and self.oversampled == False:
+            self.message.setText('Message: All OK')
+        elif self.fov_too_large == False and self.oversampled == True:
+            self.message.setText('Message: Pixel scale is higher than displayed')
+        elif self.fov_too_large == True and self.oversampled == True:
+            self.message.setText('Message: Pixel scale is higher than displayed and field of view is larger than current image')
+        elif self.fov_too_large == True and self.oversampled == False:
+            self.message.setText('Message: Field of view is larger than current image')
+        return
+        
     def init_draw(self):
         '''
         Sets up all of the matplotlib widgets
@@ -127,6 +159,8 @@ class AppForm(QMainWindow):
         # Initial image 
         # FIXME add null image
         self.current_pixscale = .05
+        self.current_image_name = 'Galaxy Image 1'
+#        im = misc.imread('galaxy_simulations/im1.jpg')
         im = misc.imread('galaxy_images/im1.jpg')
         self.obj = ImageObject(im, self.current_pixscale)
         self.image_object = self.obj.current_image
@@ -135,17 +169,14 @@ class AppForm(QMainWindow):
         self.imshow = self.image_axes.imshow(self.image_object, interpolation='nearest', 
                                              extent = [-self.obj.xsize_arcsecs / 2., self.obj.xsize_arcsecs / 2.,
                                                        -self.obj.ysize_arcsecs / 2., self.obj.ysize_arcsecs / 2.])
-
-
+        self.image_axes.set_title(self.current_image_name)
+        self.image_axes.set_xlabel('Arcsecs')
+        self.image_axes.set_ylabel('Arcsecs')
         self.current_fov = 10.
         self.current_xloc = -self.current_fov / 2. 
         self.current_yloc = -self.current_fov / 2. 
         rectsize = 10.
         self.fov_square = patches.Rectangle((-self.current_fov / 2., - self.current_fov / 2.), rectsize, rectsize, fill = False, linewidth = 4.0, edgecolor = 'red')
-
-
-
-
         self.image_axes.add_artist(self.fov_square)
         def update(val):
             if self.sample_slider.val != self.obj.current_sampling:
@@ -190,82 +221,114 @@ class AppForm(QMainWindow):
         Hacked together image selection. 
         Takes selection from the image_selection_menu widget 
         '''
+        self.image_axes.set_title(image_name)
+
         if image_name == 'Galaxy Image 1':
             im = misc.imread('galaxy_images/im1.jpg')
-            pixscale = .05
+            pixscale = .01
             self.obj = ImageObject(im, pixscale)
             self.image_update()
         if image_name == 'Galaxy Image 2':
             im = misc.imread('galaxy_images/im2.jpg')
-            pixscale = .05
+            pixscale = .01
+            self.obj = ImageObject(im, pixscale)
+            self.image_update()
+        if image_name == 'Galaxy Image 3':
+            im = misc.imread('galaxy_images/im3.jpg')
+            pixscale = .01
+            self.obj = ImageObject(im, pixscale)
+            self.image_update()
+        if image_name == 'Galaxy Image 4':
+            im = misc.imread('galaxy_images/im4.jpg')
+            pixscale = .01
             self.obj = ImageObject(im, pixscale)
             self.image_update()
         if image_name == 'Galaxy Simulation 1':
             im = misc.imread('galaxy_simulations/im1.jpg')
-            pixscale = .1
+            pixscale = .01
             self.obj = ImageObject(im, pixscale)
             self.image_update()
-        if image_name == 'Jupiter Narrow Field Simulation':
-            im = misc.imread('jupiter_simulation/jupiter_zoomin.png')
-            pixscale = .1
+        if image_name == 'Galaxy Simulation 2':
+            im = misc.imread('galaxy_simulations/im2.jpg')
+            pixscale = .01
+            self.obj = ImageObject(im, pixscale)
+            self.image_update()
+        if image_name == 'Jupiter Simulation':
+            im = misc.imread('jupiter_simulation/jupiter_zoomout.png')
+            pixscale = .02
+            self.obj = ImageObject(im, pixscale)
+            self.image_update()
+        if image_name == 'Jupiter Image 1':
+            im = misc.imread('jupiter_images/im1.jpg')
+            pixscale = .02
+            self.obj = ImageObject(im, pixscale)
+            self.image_update()
+        if image_name == 'Jupiter Image 2':
+            im = misc.imread('jupiter_images/im2.jpg')
+            pixscale = .005
             self.obj = ImageObject(im, pixscale)
             self.image_update()
 
-        if image_name == 'Jupiter Wide Field Simulation':
-            im = misc.imread('jupiter_simulation/jupiter_zoomout.png')
-            pixscale = .1
-            self.obj = ImageObject(im, pixscale)
-            self.image_update()
         if image_name == 'Star Formation Simulation 1':
             im = misc.imread('star_formation_simulation/im1.gif')
-            pixscale = .1
+            pixscale = .004 
             self.obj = ImageObject(im, pixscale)
             self.image_update()
         if image_name == 'Star Formation Simulation 2':
             im = misc.imread('star_formation_simulation/im2.gif')
-            pixscale = .1
+            pixscale = .004
             self.obj = ImageObject(im, pixscale)
             self.image_update()
         if image_name == 'Star Formation Simulation 3':
             im = misc.imread('star_formation_simulation/im3.gif')
-            pixscale = .1
+            pixscale = .004
             self.obj = ImageObject(im, pixscale)
             self.image_update()
 
         if image_name == 'Star Formation Image 1':
             im = misc.imread('star_formation_images/im1.jpg')
-            pixscale = .1
+            pixscale = .002
             self.obj = ImageObject(im, pixscale)
             self.image_update()
 
         if image_name == 'Star Formation Image 2':
-            im = misc.imread('star_formation_images/im2.gif')
-            pixscale = .1
+            im = misc.imread('star_formation_images/im2.jpg')
+            pixscale = .002
             self.obj = ImageObject(im, pixscale)
             self.image_update()
 
+        if image_name == 'Star Formation Image 3':
+            im = misc.imread('star_formation_images/im3.jpg')
+            pixscale = .002
+            self.obj = ImageObject(im, pixscale)
+            self.image_update()
 
-
+        if image_name == 'Galaxy Cluster Image':
+            im = misc.imread('cosmology_images/im1.jpg')
+            pixscale = .005
+            self.obj = ImageObject(im, pixscale)
+            self.image_update()
+        if image_name == 'Galaxy Cluster Simulation':
+            im = misc.imread('cosmology_simulation/actual_im1.jpg')
+            pixscale = .005
+            self.obj = ImageObject(im, pixscale)
+            self.image_update()
     def image_update(self):
         '''
         Helper function to image selection, resets image and sliders
         '''
-
         self.imshow.set_data(self.obj.current_image)
         self.imshow.set_extent([-self.obj.xsize_arcsecs / 2., self.obj.xsize_arcsecs / 2., 
                                 -self.obj.ysize_arcsecs / 2., self.obj.ysize_arcsecs / 2.])
         self.canvas.draw()
         if self.obj.master_sampling != self.current_pixscale:
             self.current_pixscale = self.obj.master_sampling
-            self.sample_axis.cla()
-            self.sample_slider = Slider(self.sample_axis, 'Sampling (arcsecs/pix)', self.current_pixscale, self.current_pixscale * 20., valinit = self.current_pixscale)
             def update(val):
-                self.obj.update_sampling(self.sample_slider.val)
                 self.imshow.set_data(self.obj.current_image)
                 self.canvas.draw()
-            self.sample_slider.on_changed(update)
         else:
-            self.sample_slider.reset()
+            pass
+            #self.sample_slider.reset()
 
 
 def main():
